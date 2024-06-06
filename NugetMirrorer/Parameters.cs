@@ -7,6 +7,6 @@ internal sealed record Parameters(
     string Source,
     string Destination,
     string? Search,
-    string ApiKey,
+    string? ApiKey,
     bool DryRun,
     LogLevel LogLevel = LogLevel.Minimal) : ICommandParameterSet;

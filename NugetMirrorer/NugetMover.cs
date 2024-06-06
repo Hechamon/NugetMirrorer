@@ -10,11 +10,11 @@ internal sealed class NugetMover
     private readonly ILogger _logger;
     private readonly SourceRepository _sourceRepository;
     private readonly SourceRepository _destinationRepository;
-    private readonly string _apiKey;
+    private readonly string? _apiKey;
     private readonly SourceCacheContext _sourceCacheContext = new();
 
     public NugetMover(ILogger logger, SourceRepository sourceRepository, SourceRepository destinationRepository,
-        string apiKey)
+        string? apiKey)
     {
         _logger = logger;
         _sourceRepository = sourceRepository;
