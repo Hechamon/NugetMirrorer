@@ -1,5 +1,6 @@
 ﻿using NuGet.Common;
 using NuGet.Protocol.Core.Types;
+using NuGet.Protocol.Plugins;
 using NuGet.Versioning;
 
 namespace NugetMirrorer;
@@ -24,8 +25,27 @@ internal sealed class NugetMover
     public async Task Move(IAsyncEnumerable<(string Id, NuGetVersion Version)> packages, bool dryRun,
         CancellationToken ct)
     {
-        var source = await _sourceRepository.GetResourceAsync<FindPackageByIdResource>(ct);
-        var destination = await _destinationRepository.GetResourceAsync<PackageUpdateResource>(ct);
+        FindPackageByIdResource source;
+        try
+        {
+            source = await _sourceRepository.GetResourceAsync<FindPackageByIdResource>(ct);
+        }
+        catch (Exception ex) when (ex is NuGetProtocolException or ProtocolException)
+        {
+            _logger.LogError($"Source does not support finding packages or failed to connect: {ex.Message}");
+            return;
+        }
+
+        PackageUpdateResource destination;
+        try
+        {
+            destination = await _destinationRepository.GetResourceAsync<PackageUpdateResource>(ct);
+        }
+        catch (Exception ex) when (ex is NuGetProtocolException or ProtocolException)
+        {
+            _logger.LogError($"Destination does not support pushing packages or failed to connect: {ex.Message}");
+            return;
+        }
 
         await foreach (var (id, version) in packages.WithCancellation(ct))
         {
@@ -34,16 +54,26 @@ internal sealed class NugetMover
             if(dryRun) continue;
 
             var tempFileName = Path.GetTempFileName();
-            await using (var packageStream = File.Create(tempFileName))
+            try
             {
-                await source.CopyNupkgToStreamAsync(id, version, packageStream, _sourceCacheContext, _logger, ct);
+                await using (var packageStream = File.Create(tempFileName))
+                {
+                    await source.CopyNupkgToStreamAsync(id, version, packageStream, _sourceCacheContext, _logger, ct);
+                }
+
+                await destination.Push([tempFileName], null, 5 * 60, false, _ => _apiKey, _ => null,
+                    false, true, null, false,
+                    _logger);
+
             }
-
-            await destination.Push([tempFileName], null, 5 * 60, false, _ => _apiKey, _ => null,
-                false, true, null, false,
-                _logger);
-
-            File.Delete(tempFileName);
+            catch (Exception ex) when (ex is NuGetProtocolException or ProtocolException)
+            {
+                _logger.LogError($"Download or upload of {id} failed: {ex.Message}");
+            }
+            finally
+            {
+                if(File.Exists(tempFileName)) File.Delete(tempFileName);
+            }
         }
     }
 }
