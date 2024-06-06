@@ -21,7 +21,8 @@ internal sealed class NugetMover
         _apiKey = apiKey;
     }
 
-    public async Task Move(IAsyncEnumerable<(string Id, NuGetVersion Version)> packages, CancellationToken ct)
+    public async Task Move(IAsyncEnumerable<(string Id, NuGetVersion Version)> packages, bool dryRun,
+        CancellationToken ct)
     {
         var source = await _sourceRepository.GetResourceAsync<FindPackageByIdResource>(ct);
         var destination = await _destinationRepository.GetResourceAsync<PackageUpdateResource>(ct);
@@ -29,6 +30,8 @@ internal sealed class NugetMover
         await foreach (var (id, version) in packages.WithCancellation(ct))
         {
             _logger.LogMinimal($"Moving package '{id}', version '{version.ToString()}'");
+
+            if(dryRun) continue;
 
             var tempFileName = Path.GetTempFileName();
             await using (var packageStream = File.Create(tempFileName))

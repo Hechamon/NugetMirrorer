@@ -19,7 +19,7 @@ app.AddCommand(async (Parameters parameters, CoconaAppContext context) =>
 
     var mover = new NugetMover(logger, sourceRepository, destinationRepository, parameters.ApiKey);
 
-    await mover.Move(missingPackages, context.CancellationToken);
+    await mover.Move(missingPackages, parameters.DryRun, context.CancellationToken);
 
     logger.LogMinimal("Done");
 });
