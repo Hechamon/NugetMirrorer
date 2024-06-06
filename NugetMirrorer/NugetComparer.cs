@@ -1,43 +1,52 @@
-﻿using NuGet.Configuration;
-using NuGet.Protocol;
+﻿using System.Runtime.CompilerServices;
+using NuGet.Common;
 using NuGet.Protocol.Core.Types;
+using NuGet.Versioning;
 using NugetMirrorer.Extensions;
 
 namespace NugetMirrorer;
 
 internal sealed class NugetComparer
 {
-    private readonly string _source;
-    private readonly string _destination;
-    private readonly string _search;
+    private readonly SourceCacheContext _sourceCacheContext = new();
+    private readonly ILogger _logger;
+    private readonly SourceRepository _sourceRepository;
+    private readonly SourceRepository _destinationRepository;
 
-    public NugetComparer(string source, string destination, string? search)
+    public NugetComparer(ILogger logger, SourceRepository sourceRepository, SourceRepository destinationRepository)
     {
-        _destination = destination;
-        _source = source;
-        _search = search ?? string.Empty;
+        _logger = logger;
+        _sourceRepository = sourceRepository;
+        _destinationRepository = destinationRepository;
     }
 
-    public async Task<IDictionary<string, IList<string>>> Execute()
+    public async IAsyncEnumerable<(string Id, NuGetVersion Version)> Execute(string? search, [EnumeratorCancellation] CancellationToken ct)
     {
-        var repository = Repository.Factory.GetCoreV2(new PackageSource(_source));
+        search ??= string.Empty;
+        var sourceListPackages = await _sourceRepository.GetResourceAsync<ListResource>(ct);
+        var destinationPackages = await _destinationRepository.GetResourceAsync<MetadataResource>(ct);
 
-        var listPackages = await repository.GetResourceAsync<ListResource>();
-        var packages = await listPackages.ListAsync(
-            _search,
+        var packages = await sourceListPackages.ListAsync(
+            search,
             true,
             true,
             true,
-            new ConsoleLogger(),
-            CancellationToken.None);
-
-        var sourceList = new Dictionary<string, IList<string>>();
+            _logger,
+            ct);
 
         await foreach (var package in packages)
         {
-            var versions = await package.GetVersionsAsync();
-            sourceList.Add(package.Identity.Id, versions.Select(v => v.Version.Version.ToString()).ToList());
+            var sourceVersions = await package.GetVersionsAsync();
+
+            var destinationVersion = await destinationPackages.GetVersions(package.Identity.Id, true, true, _sourceCacheContext, _logger,ct);
+
+            if (sourceVersions is null) continue;
+
+            foreach (var version in sourceVersions.Select(v => v.Version).Except(destinationVersion))
+            {
+                if(version is not null)
+                    yield return (package.Identity.Id, version);
+            }
         }
-        return sourceList;
     }
 }

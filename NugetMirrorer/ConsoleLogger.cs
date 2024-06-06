@@ -4,49 +4,52 @@ namespace NugetMirrorer;
 
 internal sealed class ConsoleLogger : ILogger
 {
+    public LogLevel MinLevel { get; init; } = LogLevel.Information;
+
     public void LogDebug(string data)
     {
-        Console.WriteLine(data);
+        Log(LogLevel.Debug, data);
     }
 
     public void LogVerbose(string data)
     {
-        Console.WriteLine(data);
+        Log(LogLevel.Verbose, data);
     }
 
     public void LogInformation(string data)
     {
-        Console.WriteLine(data);
+        Log(LogLevel.Information, data);
     }
 
     public void LogMinimal(string data)
     {
-        Console.WriteLine(data);
+        Log(LogLevel.Minimal, data);
     }
 
     public void LogWarning(string data)
     {
-        Console.WriteLine(data);
+        Log(LogLevel.Warning, data);
     }
 
     public void LogError(string data)
     {
-        Console.Error.WriteLine(data);
+        Log(LogLevel.Error, data);
     }
 
     public void LogInformationSummary(string data)
     {
-        Console.WriteLine(data);
+        Log(LogLevel.Information, data);
     }
 
     public void Log(LogLevel level, string data)
     {
+        if (level < MinLevel) return;
         if (level == LogLevel.Error)
         {
-            Console.Error.WriteLine(data);
+            Console.Error.WriteLine($"{level}: {data}");
             return;
         }
-        Console.WriteLine(data);
+        Console.WriteLine($"{level}: {data}");
     }
 
     public async Task LogAsync(LogLevel level, string data)
@@ -56,7 +59,7 @@ internal sealed class ConsoleLogger : ILogger
 
     public void Log(ILogMessage message)
     {
-        Console.WriteLine(message);
+        Log(message.Level, message.Message);
     }
 
     public async Task LogAsync(ILogMessage message)
