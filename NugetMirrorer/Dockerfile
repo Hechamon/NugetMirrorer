@@ -18,5 +18,10 @@ RUN dotnet publish "NugetMirrorer.csproj" -c $BUILD_CONFIGURATION -o /app/publis
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "NugetMirrorer.dll"]
+COPY --from=build /src/NugetMirrorer/entrypoint.sh .
+USER root
+RUN chmod +x entrypoint.sh
+USER $APP_UID
+
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["--help"]

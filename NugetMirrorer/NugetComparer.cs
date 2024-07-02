@@ -44,9 +44,9 @@ internal sealed class NugetComparer
         {
             packages = await sourceListPackages.ListAsync(
                 search,
+                false,
                 true,
-                true,
-                true,
+                false,          
                 _logger,
                 ct);
         }
