@@ -18,7 +18,11 @@ app.AddCommand(async (Parameters parameters, CoconaAppContext context) =>
 
     var mover = new NugetMover(logger, sourceRepository, destinationRepository, parameters.ApiKey);
 
-    await mover.Move(missingPackages, parameters.DryRun, context.CancellationToken);
+    if (!await mover.Move(missingPackages, parameters.DryRun, context.CancellationToken))
+    {
+        logger.LogError("Finished with error, failed to mirror packages");
+        Environment.Exit(1);
+    }
 
     logger.LogMinimal("Done");
 });

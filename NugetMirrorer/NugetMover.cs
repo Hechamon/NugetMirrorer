@@ -22,7 +22,7 @@ internal sealed class NugetMover
         _apiKey = apiKey;
     }
 
-    public async Task Move(IAsyncEnumerable<(string Id, NuGetVersion Version)> packages, bool dryRun,
+    public async Task<bool> Move(IAsyncEnumerable<(string Id, NuGetVersion Version)> packages, bool dryRun,
         CancellationToken ct)
     {
         FindPackageByIdResource source;
@@ -33,7 +33,7 @@ internal sealed class NugetMover
         catch (Exception ex) when (ex is NuGetProtocolException or ProtocolException)
         {
             _logger.LogError($"Source does not support finding packages or failed to connect: {ex.Message}");
-            return;
+            return false;
         }
 
         PackageUpdateResource destination;
@@ -44,7 +44,7 @@ internal sealed class NugetMover
         catch (Exception ex) when (ex is NuGetProtocolException or ProtocolException)
         {
             _logger.LogError($"Destination does not support pushing packages or failed to connect: {ex.Message}");
-            return;
+            return false;
         }
 
         await foreach (var (id, version) in packages.WithCancellation(ct))
@@ -75,5 +75,7 @@ internal sealed class NugetMover
                 if(File.Exists(tempFileName)) File.Delete(tempFileName);
             }
         }
+
+        return true;
     }
 }
