@@ -9,7 +9,11 @@ namespace NugetMirrorer;
 
 internal sealed class NugetComparer
 {
-    private readonly SourceCacheContext _sourceCacheContext = new();
+    private readonly SourceCacheContext _sourceCacheContext = new()
+    {
+        NoCache = true,
+        DirectDownload = true
+    };
     private readonly ILogger _logger;
     private readonly SourceRepository _sourceRepository;
     private readonly SourceRepository _destinationRepository;
@@ -73,10 +77,9 @@ internal sealed class NugetComparer
 
             if (sourceVersions is null) continue;
 
-            foreach (var version in sourceVersions.Select(v => v.Version).Except(destinationVersion))
+            foreach (var version in sourceVersions.Select(v => v.Version).Except(destinationVersion).Where(v => v is not null))
             {
-                if(version is not null)
-                    yield return (package.Identity.Id, version);
+                yield return (package.Identity.Id, version);
             }
         }
     }

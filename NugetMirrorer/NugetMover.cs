@@ -11,7 +11,11 @@ internal sealed class NugetMover
     private readonly SourceRepository _sourceRepository;
     private readonly SourceRepository _destinationRepository;
     private readonly string? _apiKey;
-    private readonly SourceCacheContext _sourceCacheContext = new();
+    private readonly SourceCacheContext _sourceCacheContext = new()
+    {
+        DirectDownload = true,
+        NoCache = true
+    };
 
     public NugetMover(ILogger logger, SourceRepository sourceRepository, SourceRepository destinationRepository,
         string? apiKey)
@@ -62,7 +66,7 @@ internal sealed class NugetMover
                 }
 
                 await destination.Push([tempFileName], null, 5 * 60, false, _ => _apiKey, _ => null,
-                    false, true, null, false,
+                    false, false, null, false,
                     _logger);
 
             }
