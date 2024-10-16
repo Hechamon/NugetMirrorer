@@ -14,7 +14,7 @@ app.AddCommand(async (Parameters parameters, CoconaAppContext context) =>
     var destinationRepository = Repository.Factory.GetCoreV3(parameters.Destination);
 
     var comparer = new NugetComparer(logger, sourceRepository, destinationRepository);
-    var missingPackages = comparer.Execute(parameters.Search, context.CancellationToken);
+    var missingPackages = comparer.Execute(parameters.Search, parameters.MaxAgeDays, parameters.WithDependencies, context.CancellationToken);
 
     var mover = new NugetMover(logger, sourceRepository, destinationRepository, parameters.ApiKey);
 

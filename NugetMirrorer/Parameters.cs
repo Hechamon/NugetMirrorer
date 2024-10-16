@@ -9,4 +9,6 @@ internal sealed record Parameters(
     string? Search,
     string? ApiKey,
     bool DryRun,
+    int? MaxAgeDays = null,
+    bool WithDependencies = true,
     LogLevel LogLevel = LogLevel.Minimal) : ICommandParameterSet;
