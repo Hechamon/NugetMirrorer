@@ -16,6 +16,7 @@ internal sealed class NugetComparer
         DirectDownload = true
     };
 
+    private readonly HashSet<PackageIdentity> _dependencyCache = new(comparer: PackageIdentityComparer.Default);
     private readonly ILogger _logger;
     private readonly SourceRepository _sourceRepository;
     private readonly SourceRepository _destinationRepository;
@@ -141,6 +142,12 @@ internal sealed class NugetComparer
             yield break;
         }
 
+        if (_dependencyCache.Contains(package.Identity))
+        {
+            _logger.LogVerbose($"Skipping package {package.Identity.Id} {package.Identity.Version} because it was already processed" );
+            yield break;
+        }
+
         // return the original package
         yield return package;
 
@@ -165,6 +172,7 @@ internal sealed class NugetComparer
 
             await foreach (var packageSearchMetadata in packagesWithDependencies)
             {
+                _dependencyCache.Add(packageSearchMetadata.Identity);
                 yield return packageSearchMetadata;
             }
         }
